@@ -46,8 +46,8 @@ public class GroovySystemLoaderFactory {
                 return NOT_BROKEN;
             }
             VersionNumber groovyVersion = VersionNumber.parse(versionString);
-            boolean isFaultyGroovy = groovyVersion.getMajor() == 2 && groovyVersion.getMinor() == 4;
-            return isFaultyGroovy ? new LeakyOnJava7GroovySystemLoader(classLoader) : NOT_BROKEN;
+            boolean isFaultyGroovy = groovyVersion.getMajor() == 2 && groovyVersion.getMinor() >= 4;
+            return isFaultyGroovy ? new LeakyGroovySystemLoader(classLoader) : NOT_BROKEN;
         } catch (Exception e) {
             throw new GradleException("Could not inspect the Groovy system for ClassLoader " + classLoader, e);
         }
