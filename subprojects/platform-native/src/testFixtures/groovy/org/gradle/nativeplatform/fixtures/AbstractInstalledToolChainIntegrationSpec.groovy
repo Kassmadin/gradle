@@ -18,6 +18,7 @@ package org.gradle.nativeplatform.fixtures
 
 import org.gradle.api.internal.file.BaseDirFileResolver
 import org.gradle.api.internal.file.TestFiles
+import org.gradle.api.internal.plugins.DefaultPluginManager
 import org.gradle.integtests.fixtures.AbstractIntegrationSpec
 import org.gradle.integtests.fixtures.SourceFile
 import org.gradle.internal.os.OperatingSystem
@@ -39,16 +40,35 @@ abstract class AbstractInstalledToolChainIntegrationSpec extends AbstractIntegra
 
     def setup() {
         initScript = file("init.gradle") << """
-allprojects { p ->
-    apply plugin: ${toolChain.pluginClass}
-
-    model {
-          toolChains {
-            ${toolChain.buildScriptConfig}
-          }
-    }
-}
-"""
+            allprojects { p ->
+                apply plugin: ${toolChain.pluginClass}
+            
+                model {
+                      toolChains {
+                        ${toolChain.buildScriptConfig}
+                      }
+                }
+            }
+        """
+        if (toolChain.meets(ToolChainRequirement.WINDOWS_GCC)) {
+            initScript << """
+                allprojects { p ->
+                    [
+                       "application": ["cpp-application", "swift-application"],
+                        "library": ["cpp-library", "swift-library"],
+                        "unitTest": ["cpp-unit-test"]
+                    ].each { block, plugins ->
+                        plugins.each { plugin ->
+                            p.pluginManager.withPlugin("${DefaultPluginManager.CORE_PLUGIN_PREFIX}\${plugin}") {
+                                "\${block}"({
+                                    targetMachines.set([machines.host().x86()])
+                                })
+                            }
+                        }
+                    }            
+                }
+            """
+        }
         executer.beforeExecute({
             usingInitScript(initScript)
         })
